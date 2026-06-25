@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Building a Skill on Jibo</title>
+<style>
+  :root{
+    --ink:#0f2230; --ink-soft:#3d5567; --line:#e3ebf1; --bg:#ffffff; --panel:#f6f9fb;
+    --blue:#1f6feb; --blue-dark:#0d4ba0; --teal:#0d9488; --teal-soft:#e3f5f2;
+    --amber:#b7791f; --amber-soft:#fdf3df; --red:#c0392b; --red-soft:#fdecea;
+    --green:#1e7d4f; --green-soft:#e7f6ee; --purple:#7c3aed; --purple-soft:#f1ecfd;
+    --code-bg:#0f2230; --code-ink:#e6edf3; --radius:12px;
+    --mono:"SFMono-Regular",ui-monospace,"Cascadia Code","JetBrains Mono",Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{margin:0;font-family:var(--sans);color:var(--ink);background:var(--bg);line-height:1.65;font-size:16px;}
+
+  .wrap{display:grid;grid-template-columns:280px minmax(0,1fr);max-width:1220px;margin:0 auto;}
+  nav.toc{position:sticky;top:0;align-self:start;height:100vh;overflow-y:auto;padding:32px 22px;
+    border-right:1px solid var(--line);background:var(--panel);font-size:14px;}
+  nav.toc h2{font-size:12px;text-transform:uppercase;letter-spacing:.09em;color:var(--ink-soft);margin:22px 0 8px;}
+  nav.toc h2:first-child{margin-top:0;}
+  nav.toc a{display:block;color:var(--ink-soft);text-decoration:none;padding:4px 10px;border-radius:7px;border-left:2px solid transparent;}
+  nav.toc a:hover{color:var(--blue);background:#eef4fb;border-left-color:var(--blue);}
+  nav.toc a.opt:hover{color:var(--purple);background:var(--purple-soft);border-left-color:var(--purple);}
+  main{padding:48px 56px 120px;min-width:0;}
+
+  header.hero{border-bottom:1px solid var(--line);padding-bottom:26px;margin-bottom:34px;}
+  .kicker{display:inline-block;font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--teal);background:var(--teal-soft);padding:4px 11px;border-radius:999px;margin-bottom:16px;}
+  header.hero h1{font-size:36px;line-height:1.16;margin:0 0 12px;letter-spacing:-.02em;}
+  header.hero p.sub{font-size:17px;color:var(--ink-soft);margin:0;max-width:68ch;}
+  .meta-row{margin-top:18px;display:flex;flex-wrap:wrap;gap:18px;font-size:13.5px;color:var(--ink-soft);}
+  .meta-row b{color:var(--ink);}
+
+  h2.part{font-size:13px;text-transform:uppercase;letter-spacing:.12em;color:var(--blue);margin:0 0 4px;}
+  h2.part.opt{color:var(--purple);}
+  section{margin-bottom:54px;scroll-margin-top:24px;}
+  section > h3{font-size:27px;letter-spacing:-.01em;margin:0 0 6px;}
+  .lede{color:var(--ink-soft);font-size:16px;margin:0 0 22px;max-width:72ch;}
+  h4{font-size:18px;margin:30px 0 10px;color:var(--ink);}
+  h4 .num{color:var(--teal);font-variant-numeric:tabular-nums;margin-right:8px;font-weight:700;}
+  p{margin:0 0 14px;}
+  a{color:var(--blue);}
+  strong{color:var(--ink);}
+
+  pre{background:var(--code-bg);color:var(--code-ink);border-radius:var(--radius);padding:16px 18px;overflow-x:auto;
+    font-family:var(--mono);font-size:13.5px;line-height:1.6;margin:0 0 16px;border:1px solid #1c3247;}
+  pre .c{color:#7d97ad;font-style:italic;}
+  pre .k{color:#7cc4ff;}
+  pre .s{color:#7ee0b8;}
+  code.inline{font-family:var(--mono);font-size:.86em;background:#eef3f7;color:#0d4ba0;padding:1.5px 6px;border-radius:5px;border:1px solid #dde7ef;}
+
+  .box{border-radius:var(--radius);padding:14px 16px 14px 18px;margin:0 0 18px;border:1px solid;font-size:15px;}
+  .box p:last-child{margin-bottom:0;}
+  .box .label{display:block;font-weight:700;font-size:12.5px;letter-spacing:.05em;text-transform:uppercase;margin-bottom:5px;}
+  .box.note{background:var(--panel);border-color:var(--line);} .box.note .label{color:var(--blue-dark);}
+  .box.tip{background:var(--teal-soft);border-color:#bfe6df;} .box.tip .label{color:var(--teal);}
+  .box.warn{background:var(--amber-soft);border-color:#f2dfae;} .box.warn .label{color:var(--amber);}
+  .box.danger{background:var(--red-soft);border-color:#f3c9c4;} .box.danger .label{color:var(--red);}
+  .box.why{background:#eef4fb;border-color:#cfe0f5;} .box.why .label{color:var(--blue-dark);}
+  .box.opt{background:var(--purple-soft);border-color:#ddd0f7;} .box.opt .label{color:var(--purple);}
+
+  table{width:100%;border-collapse:collapse;margin:0 0 20px;font-size:14.5px;}
+  thead th{background:var(--ink);color:#fff;text-align:left;padding:10px 13px;font-weight:600;font-size:13px;letter-spacing:.02em;}
+  thead th:first-child{border-top-left-radius:9px;} thead th:last-child{border-top-right-radius:9px;}
+  tbody td{padding:10px 13px;border-bottom:1px solid var(--line);vertical-align:top;}
+  tbody tr:nth-child(even){background:var(--panel);}
+  td code, th code{font-family:var(--mono);font-size:.84em;background:#eef3f7;color:#0d4ba0;padding:1px 5px;border-radius:4px;}
+  .fixlink{white-space:nowrap;font-weight:600;}
+
+  .tree{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;
+    font-family:var(--mono);font-size:13.5px;line-height:1.7;margin:0 0 18px;color:var(--ink-soft);}
+  .tree b{color:var(--ink);} .tree .cm{color:var(--teal);}
+
+  ol.steps{counter-reset:s;list-style:none;padding:0;margin:0 0 18px;}
+  ol.steps li{position:relative;padding:2px 0 2px 38px;margin-bottom:9px;}
+  ol.steps li::before{counter-increment:s;content:counter(s);position:absolute;left:0;top:1px;width:26px;height:26px;
+    background:var(--blue);color:#fff;border-radius:50%;display:grid;place-items:center;font-size:13px;font-weight:700;}
+
+  .flowsteps{list-style:none;counter-reset:f;padding:0;margin:0 0 18px;}
+  .flowsteps li{position:relative;padding:10px 0 10px 44px;border-left:2px solid var(--purple-soft);margin-left:13px;}
+  .flowsteps li::before{counter-increment:f;content:counter(f);position:absolute;left:-15px;top:8px;width:28px;height:28px;
+    background:var(--purple);color:#fff;border-radius:50%;display:grid;place-items:center;font-size:13px;font-weight:700;}
+  .flowsteps li b{color:var(--ink);}
+
+  hr.soft{border:none;border-top:1px solid var(--line);margin:34px 0;}
+
+  .tcard{border:1px solid var(--line);border-left:4px solid var(--red);border-radius:10px;padding:16px 18px;margin:0 0 16px;background:#fff;}
+  .tcard h4{margin:0 0 8px;font-size:16.5px;}
+  .tcard .cause{font-size:14px;color:var(--ink-soft);margin-bottom:10px;}
+  .tcard .cause b{color:var(--red);}
+
+  footer{border-top:1px solid var(--line);padding-top:22px;margin-top:50px;font-size:13.5px;color:var(--ink-soft);}
+
+  @media (max-width:880px){
+    .wrap{grid-template-columns:1fr;}
+    nav.toc{position:static;height:auto;border-right:none;border-bottom:1px solid var(--line);}
+    main{padding:30px 22px 80px;}
+    header.hero h1{font-size:28px;}
+  }
+  @media print{
+    nav.toc{display:none;}.wrap{display:block;}main{padding:0;}
+    pre{background:#f4f7f9;color:#1a2b3a;border-color:#ccd;}
+    pre .c{color:#6a7a88;}pre .k{color:#0d4ba0;}pre .s{color:#0a7a55;}
+    body{font-size:12px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- ============ SIDEBAR ============ -->
+<nav class="toc">
+  <h2>Concepts</h2>
+  <a href="#anatomy">What a skill is</a>
+  <a href="#before">Prerequisites</a>
+  <h2>Build</h2>
+  <a href="#p1">1 · Set up the SDK</a>
+  <a href="#p2">2 · Create a skill</a>
+  <a href="#p3">3 · Add it to the main menu</a>
+  <a href="#p4">4 · Deploy &amp; run</a>
+  <h2>Optional features</h2>
+  <a class="opt" href="#p5">5 · Voice trigger</a>
+  <a class="opt" href="#p6">6 · Proactive prompt</a>
+  <a class="opt" href="#p7">7 · Example: external service</a>
+  <h2>Troubleshooting</h2>
+  <a href="#quickref">Quick reference</a>
+  <a href="#deepfixes">Detailed fixes</a>
+  <h2>Reference</h2>
+  <a href="#cheat">Command cheat sheet</a>
+  <a href="#checklist">Pre-flight checklist</a>
+</nav>
+
+<!-- ============ MAIN ============ -->
+<main>
+
+<header class="hero">
+  <span class="kicker">Jibo SDK · Skill development</span>
+  <h1>Building a skill on Jibo</h1>
+  <p class="sub">A complete walkthrough for creating a Jibo skill: setting up the SDK, writing the
+  skill, adding it to the main menu, and deploying it to the robot. Optional sections cover voice
+  triggers and proactive prompts. The examples are drawn from the bilingual "Play with Jibo" skill,
+  but the steps apply to any skill you build.</p>
+  <div class="meta-row">
+    <span>Environment: <b>Linux (WSL 2 supported)</b></span>
+    <span>SDK build Node: <b>6.5.0</b></span>
+    <span>Robot runtime Node: <b>6.9.2</b></span>
+  </div>
+</header>
+
+<!-- ====================================================== -->
+<section id="anatomy">
+  <h2 class="part">Concepts</h2>
+  <h3>What a skill is</h3>
+  <p class="lede">A skill is a folder of code that Jibo's behaviour engine, "Be", loads at runtime. It
+  lives under <code class="inline">sdk/skills/&lt;name&gt;/</code> and needs three things: a class that
+  performs the behaviour, an <code class="inline">index.html</code> that starts it, and a
+  <code class="inline">package.json</code> that declares it to Jibo.</p>
+
+  <h4>The skill lifecycle</h4>
+  <p>The behaviour class extends <code class="inline">BeSkill</code> and implements a few methods. Be
+  calls them at the appropriate times; you do not call them directly. The methods you will use most:</p>
+  <table>
+    <thead><tr><th>Method</th><th>When it runs</th><th>Responsibility</th></tr></thead>
+    <tbody>
+      <tr><td><code>constructor(assetPack?)</code></td><td>On instantiation</td><td>Call <code>super(assetPack)</code>.</td></tr>
+      <tr><td><code>postInit(done)</code></td><td>Once, at Be startup</td><td>Load persistent state (KB models) so it survives repeated runs. Call <code>done()</code>.</td></tr>
+      <tr><td><code>open(result?, refresh?)</code></td><td>Each time the skill becomes active</td><td>The main entry point — display the face and run the interaction.</td></tr>
+      <tr><td><code>close(done)</code></td><td>When the skill is dismissed</td><td>Release resources, then call <code>done()</code>.</td></tr>
+      <tr><td><code>get isInterruptible()</code></td><td>Polled by Be</td><td>Return <code>false</code> to prevent other skills from interrupting.</td></tr>
+    </tbody>
+  </table>
+  <p>Within these methods, the robot is controlled through the <code class="inline">jibo</code> module —
+  for example <code class="inline">jibo.face.views.forceEyeView()</code> to show the eye,
+  <code class="inline">jibo.expression.setLEDColor([r,g,b])</code> to set the light ring, and
+  <code class="inline">jibo.embodied.speech.speak(text)</code> to speak. Call
+  <code class="inline">this.exit()</code> to return control to Be.</p>
+
+  <div class="box note">
+    <span class="label">Two Node versions</span>
+    <p>Skills are built with Node <strong>6.5.0</strong>; the robot runs Node <strong>6.9.2</strong>.
+    The SDK setup in Part&nbsp;1 manages the build version for you. Building with a system Node (v18 or
+    v24) is the usual cause of an <code class="inline">Aborted (core dumped)</code> error.</p>
+  </div>
+</section>
+
+<!-- ====================================================== -->
+<section id="before">
+  <h2 class="part">Concepts</h2>
+  <h3>Prerequisites</h3>
+  <p class="lede">Confirm the following before starting. Each is required by a later step.</p>
+  <ul>
+    <li><strong>A Linux environment</strong> (native Linux or WSL 2 on Windows) with
+      <code class="inline">git</code> (submodule support), <code class="inline">bash</code>,
+      <code class="inline">make</code>, <code class="inline">unzip</code>, and
+      <code class="inline">curl</code> or <code class="inline">wget</code>.</li>
+    <li><strong>Network access to the package registry</strong> at
+      <code class="inline">npm.jibo.media.mit.edu:8081</code> (VPN if required).</li>
+    <li><strong>Repository access</strong> to the SDK and the skill branch you intend to build.</li>
+    <li><strong>A robot</strong> with its IP address (for example
+      <code class="inline">192.168.41.201</code>) and root SSH access. Obtain the login from whoever
+      provisioned the robot.</li>
+  </ul>
+</section>
+
+<!-- ====================================================== -->
+<section id="p1">
+  <h2 class="part">Part 1</h2>
+  <h3>Set up the SDK</h3>
+  <p class="lede">A one-time setup of the build toolchain. When complete,
+  <code class="inline">node --version</code> reports <code class="inline">v6.5.0</code> and
+  <code class="inline">yarn build:all</code> succeeds. The SDK dates from 2018, so a few steps work
+  around aging dependencies; each is explained where it appears.</p>
+
+  <h4><span class="num">1.1</span>Clone and initialise submodules</h4>
+<pre><span class="k">git</span> clone &lt;repo-url&gt; sdk
+<span class="k">cd</span> sdk
+<span class="k">git</span> submodule update --init --recursive</pre>
+
+  <h4><span class="num">1.2</span>Run setup</h4>
+  <p>Installs Node 6.5.0 and yarn into <code class="inline">virtualize-node/node/</code> using
+  <a href="https://github.com/tj/n">tj/n</a>.</p>
+<pre><span class="k">export</span> VIRTUALIZE_NODE_VERSION=6.5.0
+<span class="k">bash</span> setup.sh</pre>
+
+  <h4><span class="num">1.3</span>Activate the virtual environment</h4>
+  <p>Prepends the local node/yarn/npm binaries to <code class="inline">PATH</code>. Run
+  <code class="inline">unactivate</code> to undo. This must be done in every new shell.</p>
+<pre><span class="k">source</span> ./activate
+<span class="k">node</span> --version       <span class="c"># expect v6.5.0</span></pre>
+
+  <h4><span class="num">1.4</span>Install dependencies</h4>
+  <p>Node 6.5.0's bundled root certificates have expired and cannot validate modern HTTPS endpoints.
+  The first command disables certificate verification for this environment. The second installs
+  dependencies while skipping postinstall scripts, some of which fail (handled below).</p>
+<pre><span class="k">export</span> NODE_TLS_REJECT_UNAUTHORIZED=0
+<span class="k">yarn</span> install --frozen-lockfile --ignore-scripts</pre>
+  <div class="box warn">
+    <span class="label">If the lockfile is rejected</span>
+    <p>If yarn reports the lockfile needs updating, drop <code class="inline">--frozen-lockfile</code>,
+    let it regenerate, and commit the new <code class="inline">yarn.lock</code>.</p>
+  </div>
+  <p>Run the two Electron postinstall scripts that were skipped:</p>
+<pre><span class="k">cd</span> node_modules/electron-prebuilt && node install.js && <span class="k">cd</span> ../..
+<span class="k">cd</span> node_modules/electron-chromedriver && node download-chromedriver.js && <span class="k">cd</span> ../..</pre>
+  <p>If the Electron downloads fail with SSL errors, fetch the binaries with the system
+  <code class="inline">curl</code>, then re-run the two scripts above:</p>
+<pre><span class="k">mkdir</span> -p ~/.electron
+<span class="k">curl</span> -L -o ~/.electron/electron-v1.4.3-linux-x64.zip \
+  https://github.com/electron/electron/releases/download/v1.4.3/electron-v1.4.3-linux-x64.zip
+<span class="k">curl</span> -L -o ~/.electron/SHASUMS256.txt-1.4.3 \
+  https://github.com/electron/electron/releases/download/v1.4.3/SHASUMS256.txt
+<span class="k">curl</span> -L -o ~/.electron/chromedriver-v1.8.0-linux-x64.zip \
+  https://github.com/electron/electron/releases/download/v1.8.0/chromedriver-v1.8.0-linux-x64.zip
+<span class="k">curl</span> -L -o ~/.electron/SHASUMS256.txt-1.8.0 \
+  https://github.com/electron/electron/releases/download/v1.8.0/SHASUMS256.txt</pre>
+
+  <h4><span class="num">1.5</span>Build</h4>
+<pre><span class="k">yarn</span> build:all</pre>
+
+  <h4><span class="num">1.6</span>Make the jibo CLI available</h4>
+  <p>Linking the CLI provides the <code class="inline">jibo</code> command used to deploy and control
+  the robot later.</p>
+<pre><span class="k">cd</span> packages/jibo-cli && yarn link && <span class="k">cd</span> ../..
+<span class="k">export</span> PATH="$HOME/.yarn/bin:$PATH"   <span class="c"># add to ~/.bashrc to persist</span>
+<span class="k">jibo</span> --help | head -3</pre>
+
+  <hr class="soft">
+
+  <div class="box warn">
+    <span class="label">Working in WSL (Windows)</span>
+    <p>The SDK contains git-tracked symlinks that WSL/Windows git checks out as plain text files by
+    default, which breaks the build. Before the first build, enable symlinks and repair any that were
+    flattened:</p>
+<pre style="margin-top:10px"><span class="k">git</span> config core.symlinks true
+<span class="k">git</span> ls-files -s | awk '$1=="120000"{print $4}' | while read f; do
+  rm -f "$f"; git checkout -- "$f"
+done</pre>
+    <p>Also avoid editing the SDK from Windows-side editors. Doing so re-flattens the symlinks and
+    converts line endings to CRLF, both of which break the build. Edit from within WSL only.</p>
+  </div>
+
+  <div class="box note">
+    <span class="label">Linux notes</span>
+    <p style="margin-bottom:8px"><strong>NLU is not currently available on Linux.</strong> The parser
+    binaries are fetched from a repository that is no longer accessible, and the cached tarball
+    contains only <code class="inline">darwin-x64</code> builds. Features that depend on NLU —
+    including <a href="#p5">launch rules</a> — may need to be built or tested on macOS or on the
+    robot.</p>
+    <ul style="margin:0">
+      <li>Yarn cache (Linux): <code class="inline">~/.cache/yarn/v6/</code>.</li>
+      <li>NLU parser cache (Linux): <code class="inline">~/.cache/jibo-nlu-js/</code>.</li>
+      <li>Coverage reports call macOS <code class="inline">open</code>; on Linux use
+        <code class="inline">xdg-open coverage/lcov-report/index.html</code>.</li>
+      <li>Compatibility fixes already applied for Linux: <code class="inline">find -d</code> →
+        <code class="inline">find -depth</code> in three package scripts; a platform-aware cache
+        directory in <code class="inline">setup.sh</code>; an npm <code class="inline">--prefix</code>
+        fix in <code class="inline">virtualize-node/setup.sh</code>; and a duplicate
+        <code class="inline">do_stop</code> removed from
+        <code class="inline">JiboMessages.ts</code>.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ====================================================== -->
+<section id="p2">
+  <h2 class="part">Part 2</h2>
+  <h3>Create a skill</h3>
+  <p class="lede">The smallest skill that loads and runs consists of four files and a single build
+  command. The structure below is the standard layout for any skill.</p>
+
+  <h4><span class="num">2.1</span>Folder structure</h4>
+  <div class="tree">
+skills/myskill/<br>
+├── <b>package.json</b>        <span class="cm"># name, jibo metadata, build scripts</span><br>
+├── <b>index.html</b>          <span class="cm"># hosts the #face div, instantiates the skill</span><br>
+├── tsconfig.json<br>
+├── typings/index.d.ts<br>
+├── assets/  resources/  mims/ <span class="cm"># images, icons, prompts (as needed)</span><br>
+└── src/<br>
+&nbsp;&nbsp;&nbsp;&nbsp;├── <b>index.ts</b>         <span class="cm"># exports the skill class</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;└── <b>MySkill.ts</b>       <span class="cm"># the BeSkill subclass</span>
+  </div>
+
+  <h4><span class="num">2.2</span>package.json</h4>
+  <p>The <code class="inline">jibo</code> block declares the folder as a skill and sets the on-screen
+  name. <code class="inline">devDependencies</code> are used at build time;
+  <code class="inline">syncDependencies</code> lists the packages copied to the robot alongside the
+  skill.</p>
+<pre>{
+  <span class="s">"name"</span>: <span class="s">"@be/myskill"</span>,
+  <span class="s">"version"</span>: <span class="s">"1.0.0"</span>,
+  <span class="s">"main"</span>: <span class="s">"index.js"</span>,
+  <span class="s">"config"</span>: { <span class="s">"standalone"</span>: true },
+  <span class="s">"jibo"</span>: {
+    <span class="s">"main"</span>: <span class="s">"index.html"</span>,
+    <span class="s">"type"</span>: <span class="s">"asset-pack"</span>,
+    <span class="s">"display-name"</span>: <span class="s">"My Skill"</span>
+  },
+  <span class="s">"monorailConfig"</span>: { <span class="s">"public"</span>: false, <span class="s">"output"</span>: <span class="s">"index.js"</span> },
+  <span class="s">"files"</span>: [<span class="s">"assets"</span>, <span class="s">"resources"</span>, <span class="s">"mims"</span>, <span class="s">"index.*"</span>],
+  <span class="s">"scripts"</span>: {
+    <span class="s">"build"</span>:     <span class="s">"jibo-dev build"</span>,
+    <span class="s">"clean"</span>:     <span class="s">"jibo-dev clean"</span>,
+    <span class="s">"watch"</span>:     <span class="s">"jibo-dev watch"</span>,
+    <span class="s">"sync"</span>:      <span class="s">"jibo-rsync"</span>,
+    <span class="s">"addsshkey"</span>: <span class="s">"jibo-rsync --init"</span>
+  },
+  <span class="s">"devDependencies"</span>: {
+    <span class="s">"@be/be-framework"</span>: <span class="s">"^12.0.0"</span>,
+    <span class="s">"jibo"</span>: <span class="s">"^15.0.0"</span>,
+    <span class="s">"jibo-dev"</span>: <span class="s">"^6.0.0"</span>,
+    <span class="s">"jibo-rsync"</span>: <span class="s">"^5.0.0"</span>,
+    <span class="s">"jibo-anim-db-animations"</span>: <span class="s">"19.0.2"</span>
+  },
+  <span class="s">"syncDependencies"</span>: [<span class="s">"@be/be-framework"</span>, <span class="s">"jibo"</span>, <span class="s">"jibo-anim-db-animations"</span>]
+}</pre>
+
+  <h4><span class="num">2.3</span>index.html</h4>
+  <p>Hosts a <code class="inline">#face</code> div and instantiates the skill class.</p>
+<pre><span class="k">&lt;!DOCTYPE html&gt;</span>
+&lt;html&gt;&lt;head&gt;
+  &lt;title&gt;Be - My Skill&lt;/title&gt;
+  &lt;style&gt;
+    body { margin:0; overflow:hidden; background:#000; }
+    #face { width:1280px; height:720px; }
+  &lt;/style&gt;
+&lt;/head&gt;&lt;body&gt;
+  &lt;div id="face"&gt;&lt;/div&gt;
+  &lt;script&gt;
+    const MySkill = require('./index');
+    const skill = new MySkill();
+  &lt;/script&gt;
+&lt;/body&gt;&lt;/html&gt;</pre>
+
+  <h4><span class="num">2.4</span>The skill class</h4>
+  <p>A complete skill: show the eye, speak once, and exit.
+  <code class="inline">src/index.ts</code> re-exports the class.</p>
+<pre><span class="c">/// &lt;reference path="../typings/index.d.ts" /&gt;</span>
+<span class="k">import</span> { BeSkill } from <span class="s">'@be/be-framework'</span>;
+<span class="k">import</span> jibo = require(<span class="s">'jibo'</span>);
+
+<span class="k">export default class</span> MySkill extends BeSkill {
+  constructor(assetPack?) { super(assetPack); }
+
+  <span class="k">public</span> open(result?: any, refresh?: boolean): void {
+    jibo.face.views.forceEyeView();
+    jibo.embodied.speech.speak(<span class="s">'Hello, I am my skill.'</span>, {})
+      .then(() =&gt; this.exit())
+      .catch((err) =&gt; { this.log.warn(err); this.exit(); });
+  }
+
+  <span class="k">public</span> close(done: () =&gt; void): void { done(); }
+}</pre>
+<pre><span class="c">// src/index.ts</span>
+<span class="k">import</span> MySkill from <span class="s">'./MySkill'</span>;
+module.exports = MySkill;</pre>
+
+  <div class="box note">
+    <span class="label">No flow or preload step is required</span>
+    <p>A skill does not need a <code class="inline">preload()</code> method or a behaviour-flow file to
+    render. <code class="inline">open()</code> and <code class="inline">close()</code> are sufficient.
+    Add <code class="inline">postInit()</code> only when the skill needs to load persistent state.</p>
+  </div>
+
+  <h4><span class="num">2.5</span>Build</h4>
+<pre><span class="k">cd</span> ~/jibo/sdk/skills/myskill
+<span class="k">yarn</span> build</pre>
+</section>
+
+<!-- ====================================================== -->
+<section id="p3">
+  <h2 class="part">Part 3</h2>
+  <h3>Add it to the main menu</h3>
+  <p class="lede">Two edits: register the skill with Be so it is loaded, then add a tile to the menu so
+  it can be selected.</p>
+
+  <h4><span class="num">3.1</span>Register the skill with Be</h4>
+  <p>In <code class="inline">skills/be/package.json</code>, add the skill to the
+  <code class="inline">jibo.skills</code> list and to <code class="inline">dependencies</code>. Be has
+  no <code class="inline">syncDependencies</code> array — that field belongs to the individual skill.</p>
+<pre><span class="s">"jibo"</span>: { <span class="s">"skills"</span>: [ ..., <span class="s">"@be/myskill"</span> ] },
+<span class="s">"dependencies"</span>: { ..., <span class="s">"@be/myskill"</span>: <span class="s">"^1.0.0"</span> }</pre>
+
+  <h4><span class="num">3.2</span>Add a menu tile</h4>
+  <p>Place a PNG icon (≤200×200) in
+  <code class="inline">skills/main-menu/resources/icons/</code>, then add an entry to the
+  <code class="inline">list</code> in
+  <code class="inline">skills/main-menu/resources/views/main-menu-verbal.json</code>. The example below
+  is the "Play with Jibo" tile:</p>
+<pre>{
+  <span class="s">"id"</span>: <span class="s">"bilingual"</span>,
+  <span class="s">"label"</span>: <span class="s">"Play with Jibo"</span>,
+  <span class="s">"colors"</span>: [<span class="s">"0x25F2FB"</span>, <span class="s">"0x0A6E8A"</span>],
+  <span class="s">"iconSrc"</span>: <span class="s">"resources/icons/play-with-jibo.png"</span>,
+  <span class="s">"action"</span>: {
+    <span class="s">"type"</span>: <span class="s">"utterance"</span>,
+    <span class="s">"data"</span>: { <span class="s">"utterance"</span>: {
+      <span class="s">"intent"</span>: <span class="s">"loadMenu"</span>,
+      <span class="s">"entities"</span>: { <span class="s">"destination"</span>: <span class="s">"bilingual"</span> }
+    } }
+  }
+}</pre>
+  <p>For another skill, copy the block and change <code class="inline">id</code>,
+  <code class="inline">label</code>, <code class="inline">iconSrc</code>, and
+  <code class="inline">destination</code> accordingly.</p>
+</section>
+
+<!-- ====================================================== -->
+<section id="p4">
+  <h2 class="part">Part 4</h2>
+  <h3>Deploy &amp; run</h3>
+  <p class="lede">Copy the skill to the robot and start it. Two steps — the symlink and the permissions
+  fix — are required for the robot to load the skill; skipping either is the common reason a skill
+  copies over but does not take effect.</p>
+
+  <h4><span class="num">4.1</span>Register the robot and set up SSH</h4>
+<pre><span class="k">jibo</span> add myrobot 192.168.41.201
+<span class="k">jibo</span> set myrobot && jibo list                <span class="c"># confirm * next to myrobot</span>
+<span class="k">cd</span> packages/skills-service-manager && yarn addsshkey && <span class="k">cd</span> -   <span class="c"># installs your SSH key</span>
+<span class="k">ssh</span> root@192.168.41.201 <span class="s">"echo KEY_AUTH_WORKS"</span></pre>
+
+  <h4><span class="num">4.2</span>Create the load symlink</h4>
+  <div class="box why">
+    <span class="label">Why this is needed</span>
+    <p>Be loads skills from
+    <code class="inline">…/@be/be/node_modules/@be/&lt;skill&gt;/</code>, but the sync command writes to
+    <code class="inline">…/@be/&lt;skill&gt;/</code>. The symlink points the load path at the deployed
+    files. Without it, the code is written to a location Be does not read.</p>
+  </div>
+<pre><span class="k">ssh</span> root@192.168.41.201 <span class="s">"mount -o remount,rw /"</span>
+<span class="k">ssh</span> root@192.168.41.201 <span class="s">"rm -rf /opt/jibo/Jibo/Skills/@be/myskill && \
+  ln -sf be/node_modules/@be/myskill /opt/jibo/Jibo/Skills/@be/myskill"</span>
+<span class="k">ssh</span> root@192.168.41.201 <span class="s">"ls -la /opt/jibo/Jibo/Skills/@be/"</span>   <span class="c"># verify the link</span>
+<span class="k">ssh</span> root@192.168.41.201 <span class="s">"mount -o remount,ro /"</span></pre>
+
+  <h4><span class="num">4.3</span>Sync the skill</h4>
+  <p>If <code class="inline">yarn sync:be</code> works (it runs
+  <code class="inline">cd skills/be && yarn sync</code>):</p>
+<pre><span class="k">cd</span> ~/jibo/sdk && rm -rf skills/be/.staged && yarn sync:be</pre>
+  <p>If the dev shell times out (<code class="inline">ETIMEDOUT on port 8686</code>), copy the files
+  directly with rsync:</p>
+<pre><span class="k">ssh</span> root@192.168.41.201 <span class="s">"mount -o remount,rw /"</span>
+<span class="k">rsync</span> -av --delete --exclude='node_modules' --exclude='.staged' \
+  ~/jibo/sdk/skills/myskill/ \
+  root@192.168.41.201:/opt/jibo/Jibo/Skills/@be/be/node_modules/@be/myskill/
+<span class="k">ssh</span> root@192.168.41.201 <span class="s">"mount -o remount,ro /"</span></pre>
+
+  <h4><span class="num">4.4</span>Fix file permissions (after every sync)</h4>
+  <div class="box danger">
+    <span class="label">Why this is needed</span>
+    <p>Files copied in as <code class="inline">root</code> are owned by root, but Be's skill loader runs
+    as the lower-privilege user <code class="inline">jibo-ski</code> (UID 2000, group 10). Without the
+    correct ownership the robot halts on the checkmark screen after reboot.</p>
+  </div>
+<pre><span class="k">ssh</span> root@192.168.41.201 <span class="s">"mount -o remount,rw /"</span>
+<span class="k">ssh</span> root@192.168.41.201 <span class="s">"chown -R 2000:10 …/@be/be/node_modules/@be/myskill && \
+  find …/myskill -type f -exec chmod 640 {} \; && \
+  find …/myskill -type d -exec chmod 750 {} \;"</span>
+<span class="k">ssh</span> root@192.168.41.201 <span class="s">"mount -o remount,ro /"</span></pre>
+
+  <h4><span class="num">4.5</span>Choose a boot mode and launch</h4>
+  <table>
+    <thead><tr><th>Mode</th><th>Behaviour</th><th>Use</th></tr></thead>
+    <tbody>
+      <tr><td><code>normal</code></td><td>Auto-launches Be at boot</td><td>Production</td></tr>
+      <tr><td><code>int-developer</code></td><td>No auto-launch; enables coredumps</td><td>Development</td></tr>
+    </tbody>
+  </table>
+  <div class="box tip">
+    <span class="label">Use int-developer during development</span>
+    <p>In <code class="inline">normal</code> mode Be starts at boot and polls the error service; a
+    reported error can lock the screen on the settings error view. In
+    <code class="inline">int-developer</code> mode nothing auto-starts, so you launch Be when ready.</p>
+  </div>
+<pre><span class="k">ssh</span> root@192.168.41.201 <span class="s">"jibo-setmode int-developer && reboot"</span>   <span class="c"># wait ~2 min</span>
+<span class="k">cd</span> ~/jibo/sdk/skills/be && jibo run                       <span class="c"># boot to idle / menu</span></pre>
+  <p>Tap the screen to open the main menu and select the tile. To start a skill by voice or
+  proactively, see the optional features below.</p>
+</section>
+
+<!-- ====================================================== -->
+<section id="p5">
+  <h2 class="part opt">Part 5 · Optional</h2>
+  <h3>Voice trigger</h3>
+  <p class="lede">A skill can register its own launch grammar so that spoken phrases start it. This is
+  configured with a <code class="inline">launch.rule</code> file and one line of metadata. The
+  bilingual skill uses it to respond to phrases such as "let's play".</p>
+
+  <h4><span class="num">5.1</span>The launch rule</h4>
+  <p><code class="inline">launch.rule</code> maps phrases to an intent and a priority.
+  <code class="inline">$*</code> matches any surrounding words, so the phrase need not be exact:</p>
+<pre>TopRule =
+(
+    ( $* let'?s play $* )      {% intent='bilingual' %} {% priority='high' %}
+  | ( $* play with jibo $* )   {% intent='bilingual' %} {% priority='high' %}
+  | ( $* play with you $* )    {% intent='bilingual' %} {% priority='high' %}
+  | ( $* bilingual $* )        {% intent='bilingual' %} {% priority='high' %}
+  | ( $* play a story $* )     {% intent='bilingual' %} {% priority='high' %}
+);</pre>
+
+  <h4><span class="num">5.2</span>Register the rule in package.json</h4>
+  <p>Point <code class="inline">jibo.launchRule</code> at the file and include it in
+  <code class="inline">files</code> so it is deployed:</p>
+<pre><span class="s">"jibo"</span>: {
+  <span class="s">"main"</span>: <span class="s">"index.html"</span>,
+  <span class="s">"type"</span>: <span class="s">"asset-pack"</span>,
+  <span class="s">"launchRule"</span>: <span class="s">"launch.rule"</span>,
+  <span class="s">"display-name"</span>: <span class="s">"Play with Jibo"</span>
+},
+<span class="s">"files"</span>: [<span class="s">"assets"</span>, <span class="s">"resources"</span>, <span class="s">"mims"</span>, <span class="s">"index.*"</span>, <span class="s">"launch.rule"</span>]</pre>
+  <p>When a phrase matches, Be launches the skill and passes the intent to
+  <code class="inline">open()</code>, where the skill can act on it (see Part&nbsp;6).</p>
+  <div class="box warn">
+    <span class="label">Linux caveat</span>
+    <p>Launch rules are compiled by the NLU parser, which is not currently available on Linux (see the
+    <a href="#p1">Linux notes</a>). Rule changes may need to be built or tested on macOS or on the
+    robot.</p>
+  </div>
+</section>
+
+<!-- ====================================================== -->
+<section id="p6">
+  <h2 class="part opt">Part 6 · Optional</h2>
+  <h3>Proactive prompt</h3>
+  <p class="lede">A skill can offer to start on its own — for example when the robot detects a person —
+  rather than waiting to be selected. A direct request (voice or menu) skips the offer. The logic is
+  contained in <code class="inline">open()</code>.</p>
+
+  <h4><span class="num">6.1</span>Deciding whether to ask</h4>
+<pre><span class="k">public</span> open(result?: any, refresh?: boolean): void {
+  jibo.face.views.forceEyeView();
+  this._options = result || {};
+
+  <span class="k">const</span> intent = this._getLaunchIntent(this._options);   <span class="c">// reads options.nlu.intent etc.</span>
+  <span class="k">const</span> skipAsk = intent === <span class="s">'bilingual'</span>           <span class="c">// started by voice</span>
+              || intent === <span class="s">'menu'</span>                <span class="c">// started from the menu</span>
+              || this._options.skipAsk === true;
+
+  if (skipAsk) {
+    this._startElevenlabs();                            <span class="c">// start directly</span>
+  } else {
+    this._askToPlay();                                  <span class="c">// offer first</span>
+  }
+}</pre>
+
+  <h4><span class="num">6.2</span>The offer</h4>
+  <p>The prompt is a multi-modal interaction (a MIM) of type
+  <code class="inline">question</code> with a yes/no menu —
+  <code class="inline">mims/en-us/BilingualSurprise.mim</code>:</p>
+  <table>
+    <thead><tr><th>Field</th><th>Value</th></tr></thead>
+    <tbody>
+      <tr><td>Prompt</td><td>"Hey, do you want to play?" (with variants)</td></tr>
+      <tr><td>GUI</td><td>Menu with Yes / No buttons, titled "Play a story?"</td></tr>
+      <tr><td>Grammar</td><td><code>$YESNO</code></td></tr>
+      <tr><td>No-match / no-input</td><td>"Was that a yes?" / "Just say yes if you'd like to play."</td></tr>
+      <tr><td>Timeout</td><td>6 seconds; barge-in enabled</td></tr>
+    </tbody>
+  </table>
+  <p>The skill starts the MIM in <code class="inline">_askToPlay()</code> and branches on the result:</p>
+<pre>onSuccess: (results) =&gt; {
+  <span class="k">const</span> intent = results.asrResults && results.asrResults.intent;
+  this._teardownMim(() =&gt; {
+    if (intent === <span class="s">'yes'</span>) { this._startElevenlabs(); }
+    else            { this.cleanupViews(() =&gt; this.exit()); }
+  });
+},
+onFailure: () =&gt; { this.cleanupViews(() =&gt; this.exit()); }</pre>
+
+  <h4><span class="num">6.3</span>On acceptance</h4>
+  <ul class="flowsteps">
+    <li><b>Acknowledge</b> — set the light ring
+      (<code class="inline">setLEDColor([0.6, 0, 1])</code>) and speak a short cue while the interaction
+      starts.</li>
+    <li><b>Record state</b> — store <code class="inline">lastPlayed = Date.now()</code> in the KB,
+      which can be used to rate-limit the proactive offer (for example, once per day).</li>
+    <li><b>Start</b> — run the skill's behaviour. When it finishes, the skill exits and control returns
+      to Be.</li>
+  </ul>
+
+  <div class="box opt">
+    <span class="label">State and analytics</span>
+    <p>Persistent state and analytics are set up once in <code class="inline">postInit()</code> rather
+    than in <code class="inline">open()</code>, so resources are not re-allocated on every run. The
+    bilingual skill loads its KB model there and records each step (offered, accepted, declined, timed
+    out, started, ended) to the local KB and to Firebase.</p>
+  </div>
+</section>
+
+<!-- ====================================================== -->
+<section id="p7">
+  <h2 class="part opt">Part 7 · Optional</h2>
+  <h3>Example: launching an external service</h3>
+  <p class="lede">A skill's behaviour can be self-contained, or it can hand off to a separate program.
+  The "Play with Jibo" skill takes the second approach: it launches an external conversational-AI
+  service and manages its lifecycle.</p>
+  <table>
+    <thead><tr><th>Component</th><th>Role</th><th>Location</th></tr></thead>
+    <tbody>
+      <tr><td><strong>jibo-elevenlabs</strong></td><td>Streams microphone audio to the ElevenLabs Conversational AI, plays responses, and routes tool calls. Runs on Node 6.9.2.</td><td><code>/usr/local/jibo-elevenlabs/</code></td></tr>
+      <tr><td><strong>jibo-mcp-server</strong></td><td>Local JSON-RPC server the agent calls to move the head, set LEDs, capture images.</td><td>port 3000 on the robot</td></tr>
+    </tbody>
+  </table>
+  <p>The skill starts the service with
+  <code class="inline">/usr/local/jibo-elevenlabs/run.sh</code> and stops it with
+  <code class="inline">kill -TERM $(pgrep -f "jibo-elevenlabs")</code>. Its credentials live in
+  <code class="inline">dist/.env</code> (<code class="inline">ELEVENLABS_AGENT_ID</code>,
+  <code class="inline">ELEVENLABS_API_KEY</code>). The service is built against its own Node
+  environment (Node 6.9.2), separate from the SDK.</p>
+  <div class="box note">
+    <span class="label">Building a different behaviour</span>
+    <p>To give a skill its own behaviour instead of launching this service, replace the start/stop
+    logic in <code class="inline">open()</code> with the desired actions. The voice trigger and
+    proactive prompt described above apply regardless of what the skill does.</p>
+  </div>
+</section>
+
+<!-- ====================================================== -->
+<section id="quickref">
+  <h2 class="part">Troubleshooting</h2>
+  <h3>Quick reference</h3>
+  <table>
+    <thead><tr><th>Symptom</th><th>Likely cause</th><th>Fix</th></tr></thead>
+    <tbody>
+      <tr><td>git shows 18 typechanges / every file changed</td><td><code>core.symlinks=false</code> or a Windows editor (CRLF)</td><td class="fixlink"><a href="#fix-symlink">Symlinks</a></td></tr>
+      <tr><td><code>Aborted (core dumped)</code> with natives</td><td>Wrong Node (not 6.5.0)</td><td><code>source ./activate</code></td></tr>
+      <tr><td>Network/SSL errors on install</td><td>Expired Node 6 certificates</td><td><code>export NODE_TLS_REJECT_UNAUTHORIZED=0</code></td></tr>
+      <tr><td>Electron download fails (SSL)</td><td>Same certificate issue</td><td class="fixlink"><a href="#p1">Pre-download (1.4)</a></td></tr>
+      <tr><td>NLU / launch rule will not build</td><td>Parser binaries unavailable on Linux</td><td class="fixlink"><a href="#p1">Linux notes</a></td></tr>
+      <tr><td>"lockfile needs to be updated"</td><td>package.json changed, lockfile stale</td><td>Drop <code>--frozen-lockfile</code></td></tr>
+      <tr><td><code>jibo: command not found</code></td><td>Environment not activated / PATH unset</td><td class="fixlink"><a href="#fix-jibo">activate + PATH</a></td></tr>
+      <tr><td><code>Cannot find module '@be/myskill'</code></td><td>Symlink missing on robot</td><td class="fixlink"><a href="#p4">Symlink (4.2)</a></td></tr>
+      <tr><td>Halts on checkmark after reboot</td><td>Incorrect file ownership</td><td class="fixlink"><a href="#fix-perms">Permissions</a></td></tr>
+      <tr><td>"Reboot Needed" loop</td><td>L9 sync-server error</td><td class="fixlink"><a href="#fix-l9">L9 loop</a></td></tr>
+      <tr><td>Synced code but old behaviour persists</td><td>Symlink / build / staged cache</td><td class="fixlink"><a href="#fix-stale">Stale code</a></td></tr>
+      <tr><td><code>ETIMEDOUT</code> on port 8686</td><td>Dev shell unavailable</td><td class="fixlink"><a href="#p4">rsync fallback (4.3)</a></td></tr>
+      <tr><td><code>[[: not found</code> / "function: not found"</td><td>bashism in a <code>#!/bin/sh</code> script</td><td class="fixlink"><a href="#fix-sh">Shebang</a></td></tr>
+      <tr><td>"Read-only filesystem" on robot</td><td>Not remounted read-write</td><td><code>mount -o remount,rw /</code></td></tr>
+      <tr><td>Robot does not return after reboot</td><td>Buildroot reboot quirk</td><td>Power-cycle the robot</td></tr>
+      <tr><td>REMOTE HOST IDENTIFICATION CHANGED</td><td>IP reused / robot re-flashed</td><td class="fixlink"><a href="#fix-ssh">ssh-keygen -R</a></td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ====================================================== -->
+<section id="deepfixes">
+  <h2 class="part">Troubleshooting</h2>
+  <h3>Detailed fixes</h3>
+
+  <div class="tcard" id="fix-symlink">
+    <h4>Broken symlinks or 18 typechanges (WSL)</h4>
+    <p class="cause"><b>Cause:</b> WSL git checked out the SDK's tracked symlinks as plain text, or a
+    Windows editor rewrote files with CRLF line endings.</p>
+<pre><span class="k">git</span> config core.symlinks true
+<span class="k">git</span> ls-files -s | awk '$1=="120000"{print $4}' | while read f; do
+  rm -f "$f"; git checkout -- "$f"
+done
+<span class="c"># for CRLF noise: git diff -w &lt;file&gt; — if empty, only line endings differ; git checkout -- &lt;file&gt;</span></pre>
+  </div>
+
+  <div class="tcard" id="fix-l9">
+    <h4>The "Reboot Needed" loop (L9)</h4>
+    <p class="cause"><b>Cause:</b> the error service reports
+    <code class="inline">L9-Cannot_connect_to_sync_server</code> and Be launches the settings skill in
+    error mode. Patch the compiled SSM on the robot to return a null error id.</p>
+<pre><span class="k">ssh</span> root@192.168.41.201 <span class="s">"mount -o remount,rw /usr/local"</span>
+<span class="k">ssh</span> root@192.168.41.201 <span class="s">"cp /usr/local/bin/jibo-ssm/lib/skills-service-manager.js /tmp/ssm.js.bak"</span>
+<span class="k">ssh</span> root@192.168.41.201 <span class="s">"sed -i 's|let currentErrorId = ...|let currentErrorId = null;|' \
+  /usr/local/bin/jibo-ssm/lib/skills-service-manager.js"</span>
+<span class="k">ssh</span> root@192.168.41.201 <span class="s">"mount -o remount,ro /usr/local"</span>
+<span class="k">ssh</span> root@192.168.41.201 <span class="s">"/etc/init.d/S78jibo-system-manager stop && sleep 5 && /etc/init.d/S78jibo-system-manager start"</span></pre>
+  </div>
+
+  <div class="tcard" id="fix-perms">
+    <h4>Halts on the checkmark screen after reboot</h4>
+    <p class="cause"><b>Cause:</b> files were synced as root; Be runs as
+    <code class="inline">jibo-ski</code> (UID 2000, group 10).</p>
+    <p>Re-apply the chown/chmod from <a href="#p4">step 4.4</a> after every sync.</p>
+  </div>
+
+  <div class="tcard" id="fix-stale">
+    <h4>Synced new code but old behaviour persists</h4>
+    <p class="cause"><b>Cause:</b> missing symlink, an incomplete build, or a stale cache.</p>
+    <ul>
+      <li>Symlink missing — re-check <a href="#p4">step 4.2</a>.</li>
+      <li>Build incomplete — <code class="inline">yarn clean && yarn build</code>, then
+        <code class="inline">grep -c 'distinctive-string' index.js</code> to confirm the new code is bundled.</li>
+      <li>Stale <code class="inline">.staged/</code> — <code class="inline">rm -rf skills/be/.staged</code> and re-sync.</li>
+    </ul>
+  </div>
+
+  <hr class="soft">
+  <h4>One-line fixes</h4>
+  <table>
+    <thead><tr><th>Problem</th><th>Fix</th></tr></thead>
+    <tbody>
+      <tr id="fix-jibo"><td><code>jibo: command not found</code></td>
+        <td><code>cd ~/jibo/sdk && source ./activate && export PATH="$HOME/.yarn/bin:$PATH"</code> — add both lines to <code>~/.bashrc</code>.</td></tr>
+      <tr id="fix-sh"><td><code>[[: not found</code> / "function: not found"</td>
+        <td>A <code>#!/bin/sh</code> script uses bash syntax (Ubuntu's <code>sh</code> is dash). Change the shebang to <code>#!/bin/bash</code> on the affected <code>bin/*.sh</code> scripts.</td></tr>
+      <tr id="fix-ssh"><td>REMOTE HOST IDENTIFICATION CHANGED</td>
+        <td><code>ssh-keygen -f ~/.ssh/known_hosts -R '192.168.41.201'</code>, then reconnect.</td></tr>
+      <tr><td>Robot reboots into "off"</td>
+        <td>Buildroot reboot quirk — power-cycle the robot, then wait ~2 minutes.</td></tr>
+    </tbody>
+  </table>
+
+  <hr class="soft">
+  <h4>Reading the robot log</h4>
+<pre><span class="k">ssh</span> root@192.168.41.201 <span class="s">"tail -300 /var/log/messages"</span> | grep -iE 'bilingual|elevenlabs|mcp|error' | tail -40
+<span class="k">ssh</span> root@192.168.41.201 <span class="s">"tail -f /var/log/messages | grep --line-buffered -iE 'error|reboot|skill'"</span></pre>
+</section>
+
+<!-- ====================================================== -->
+<section id="cheat">
+  <h2 class="part">Reference</h2>
+  <h3>Command cheat sheet</h3>
+
+  <h4>New terminal for SDK work</h4>
+<pre><span class="k">cd</span> ~/jibo/sdk
+<span class="k">source</span> ./activate
+<span class="k">export</span> PATH="$HOME/.yarn/bin:$PATH"
+<span class="k">export</span> NODE_TLS_REJECT_UNAUTHORIZED=0
+<span class="k">node</span> --version   <span class="c"># v6.5.0</span></pre>
+
+  <h4>Build and deploy a skill</h4>
+<pre><span class="c"># build</span>
+<span class="k">cd</span> ~/jibo/sdk/skills/myskill && yarn build && <span class="k">cd</span> ~/jibo/sdk
+<span class="c"># sync</span>
+<span class="k">ssh</span> root@192.168.41.201 <span class="s">"mount -o remount,rw /"</span>
+<span class="k">rsync</span> -av --delete --exclude='node_modules' --exclude='.staged' \
+  skills/myskill/ root@192.168.41.201:/opt/jibo/Jibo/Skills/@be/be/node_modules/@be/myskill/
+<span class="c"># fix permissions (every time)</span>
+<span class="k">ssh</span> root@192.168.41.201 <span class="s">"chown -R 2000:10 …/myskill && \
+  find …/myskill -type f -exec chmod 640 {} \; && find …/myskill -type d -exec chmod 750 {} \;"</span>
+<span class="k">ssh</span> root@192.168.41.201 <span class="s">"mount -o remount,ro /"</span>
+<span class="c"># launch</span>
+<span class="k">cd</span> skills/be && jibo run</pre>
+
+  <h4>Robot control</h4>
+<pre><span class="k">jibo</span> stop / jibo run                       <span class="c"># stop a skill / launch Be</span>
+<span class="k">ssh</span> root@192.168.41.201 <span class="s">"reboot"</span>             <span class="c"># reboot the robot</span>
+<span class="k">jibo</span> set-volume 0.7 --robot myrobot ; jibo diskspace ; jibo build-version</pre>
+</section>
+
+<!-- ====================================================== -->
+<section id="checklist">
+  <h2 class="part">Reference</h2>
+  <h3>Pre-flight checklist</h3>
+  <ol class="steps">
+    <li><strong>Environment activated.</strong> <code class="inline">node --version</code> is v6.5.0
+      and <code class="inline">which jibo</code> resolves.</li>
+    <li><strong>Symlink present on the robot.</strong>
+      <code class="inline">ls -la /opt/jibo/Jibo/Skills/@be/</code> shows the skill pointing to
+      <code class="inline">be/node_modules/@be/&lt;skill&gt;</code>.</li>
+    <li><strong>Permissions correct.</strong> Ownership <code class="inline">2000 10</code>, modes
+      <code class="inline">640</code>/<code class="inline">750</code>.</li>
+    <li><strong>Registered with Be.</strong> The skill appears in both
+      <code class="inline">jibo.skills</code> and <code class="inline">dependencies</code> of
+      <code class="inline">skills/be/package.json</code>.</li>
+    <li><strong>Voice trigger (if used).</strong>
+      <code class="inline">launch.rule</code> is deployed and referenced via
+      <code class="inline">jibo.launchRule</code>.</li>
+    <li><strong>Logs checked.</strong> <code class="inline">/var/log/messages</code> filtered for the
+      skill name and <code class="inline">errorId</code>.</li>
+  </ol>
+</section>
+
+<footer>
+  Building a skill on Jibo — SDK setup, skill structure, main-menu integration, deployment, and the
+  optional voice-trigger and proactive features. The SDK dates from 2018; expect aging dependencies in
+  the toolchain.
+</footer>
+
+</main>
+</div>
+</body>
+</html>
